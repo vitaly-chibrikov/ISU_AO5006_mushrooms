@@ -9,9 +9,16 @@ from sklearn.decomposition import PCA
 # use "pip install scikit-learn==1.2.2"
 from imblearn.over_sampling import SMOTE
 
+from sklearn.model_selection import train_test_split
+
+from tensorflow.keras.models import Sequential
+from keras.layers import Dense 
+from keras.layers import Dropout
+
 ################ Load the data ###################
 
-#Read mushrooms data from repo
+#Read mushrooms data from the repo
+#https://archive.ics.uci.edu/dataset/73/mushroom
 df=fetch_ucirepo(id=73)
 #print(df)
 
@@ -41,11 +48,11 @@ y=LE.fit_transform(y.values.ravel())
 X=pd.DataFrame({col: LE.fit_transform(X[col]) for col in X}, index=X.index)
 #print(X)
 
-#Fix unballanced data
+#Fix unbalanced data
 over_sampling=SMOTE()
 X,y=over_sampling.fit_resample(X, y)
-print("X shape after over sampling: ", X.shape)
-print("y shape after over sampling: ", y.shape)
+print("X shape after over sampling fix: ", X.shape)
+print("y shape after over sampling fix: ", y.shape)
 
 #Check for outliers
 clf=LocalOutlierFactor()
@@ -58,11 +65,11 @@ y=y[outlier == 1]
 print("y shape otliers removal: ", y.shape)
 
 #Check variance and apply dimension reduction
-pca = PCA()
+pca=PCA()
 pca.fit(X)
 print("explained variance: ", pca.explained_variance_ratio_.cumsum())
 #It looks like we can lower the dimension to 12 without losing 2% of variance
-pca = PCA(n_components=12)
+pca=PCA(n_components=12)
 X=pca.fit_transform(X)
 print("X shape after dimension reduction: ", X.shape)
 
@@ -73,12 +80,34 @@ print(X)
 
 ################ Split the data ################
 
-# Todo
+X_train,X_test,Y_train,Y_test=train_test_split(X,y,test_size=0.33, random_state=0)
 
 ################ Prepare the model #########
 
-# Todo
+model=Sequential()
+model.add(Dense(50,input_dim=12, activation="relu"))
+model.add(Dropout(0.2))
+model.add(Dense(50, activation="relu"))
+model.add(Dropout(0.2))
+model.add(Dense(50, activation="relu"))
+model.add(Dropout(0.2))
+model.add(Dense(1,activation="softmax"))
 
-################ Learn from data ###########
+model.summary()
 
-# Todo
+################ Learn from the data ###########
+
+model.compile(loss="binary_crossentropy")
+
+history= model.fit(
+    X_train,
+    Y_train,
+    epochs=50,
+    verbose=2,
+    batch_size=16,
+    validation_split=0.2
+    )
+
+scores=model.evaluate(X_test,Y_test)
+
+print("Scores: ", scores)
