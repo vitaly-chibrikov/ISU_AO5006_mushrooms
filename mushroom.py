@@ -31,12 +31,12 @@ df=fetch_ucirepo(id=73)
 #Get features
 X=df.data.features
 print("Original X shape: ", X.shape)
-#print(X)
+print(X)
 
 #Get targets
 y=df.data.targets
 print("y shape: ", y.shape)
-#print(y)
+print(y)
 
 #Get metadata
 meta=df.metadata
@@ -54,19 +54,13 @@ print("X shape after bad column removal: ", X.shape)
 LE=LabelEncoder()
 y=LE.fit_transform(y.values.ravel())
 y=np_utils.to_categorical(y)
-print(y)
 X=pd.DataFrame({col: LE.fit_transform(X[col]) for col in X}, index=X.index)
 
-'''
 #Fix unbalanced data
 over_sampling=SMOTE()
 X,y=over_sampling.fit_resample(X, y)
 print("X shape after over sampling fix: ", X.shape)
 print("y shape after over sampling fix: ", y.shape)
-print(X)
-print(y)
-print("-----------------------------------")
-'''
 
 #Check for outliers
 clf=LocalOutlierFactor()
@@ -78,16 +72,14 @@ print("X shape after otliers removal: ", X.shape)
 y=y[outlier == 1]
 print("y shape otliers removal: ", y.shape)
 
-'''
 #Check variance and apply dimension reduction
 pca=PCA()
 pca.fit(X)
 print("Explained variance: ", pca.explained_variance_ratio_.cumsum())
-#It looks like we can lower the dimension to 12 without losing 2% of variance
-pca=PCA(n_components=12)
+#It looks like we can lower the dimension to 19 without losing 0.001% of variance
+pca=PCA(n_components=19)
 X=pca.fit_transform(X)
 print("X shape after dimension reduction: ", X.shape)
-'''
 
 #Scale all data with MinMax to 0-1
 scaler=MinMaxScaler(feature_range=(0,1))
@@ -98,18 +90,18 @@ print(y)
 
 ################ Split the data ################
 
-X_train,X_test,Y_train,Y_test=train_test_split(X,y,test_size=0.33, random_state=123)
+X_train,X_test,Y_train,Y_test=train_test_split(X,y,test_size=0.33, random_state=0)
 
 ################ Prepare the model #########
 
 model=Sequential()
-model.add(Dense(50,input_dim=21, activation="relu"))
+model.add(Dense(50,input_dim=19, activation="relu"))
 model.add(Dropout(0.2))
 model.add(Dense(50, activation="relu"))
 model.add(Dropout(0.2))
 model.add(Dense(50, activation="relu"))
 model.add(Dropout(0.2))
-model.add(Dense(2,activation="softmax"))
+model.add(Dense(1,activation="sigmoid"))
 
 model.summary()
 
@@ -119,7 +111,7 @@ tf.keras.utils.plot_model(model,"exp.png",
                           show_shapes=True,
                           show_layer_names=True)
 
-model.compile(loss="categorical_crossentropy",
+model.compile(loss="binary_crossentropy",
               optimizer="adam",
               metrics=["accuracy"])
 
