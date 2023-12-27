@@ -5,9 +5,6 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.decomposition import PCA
 
-#from keras.utils import np_utils
-from keras import utils as np_utils
-
 # To fix errors of versions compatibility of SMOTE
 # use "pip install scikit-learn==1.2.2"
 from imblearn.over_sampling import SMOTE
@@ -48,19 +45,17 @@ v_info=df.variables
 print(pd.isna(X).sum())
 #Features contain 2480 of NaNs in stalk-root. Remove bad column:
 X=X.drop(labels="stalk-root",axis=1)
-print("X shape after bad column removal: ", X.shape)
+print("X shape after NaN column removal: ", X.shape)
+for col in X:
+    print(col, ": ", pd.Series(list(X[col])).unique())
+#Column "veil-type" contains only one value ['p'] (partial=p,universal=u)
+X=X.drop(labels="veil-type",axis=1)
+print("X shape after useless column removal: ", X.shape)
 
 #Transform from categorical to numerical
 LE=LabelEncoder()
 y=LE.fit_transform(y.values.ravel())
-y=np_utils.to_categorical(y)
 X=pd.DataFrame({col: LE.fit_transform(X[col]) for col in X}, index=X.index)
-
-#Fix unbalanced data
-over_sampling=SMOTE()
-X,y=over_sampling.fit_resample(X, y)
-print("X shape after over sampling fix: ", X.shape)
-print("y shape after over sampling fix: ", y.shape)
 
 #Check for outliers
 clf=LocalOutlierFactor()
@@ -70,13 +65,25 @@ print("Otliers found:", (outlier == -1).sum())
 X=X[outlier == 1]
 print("X shape after otliers removal: ", X.shape)
 y=y[outlier == 1]
-print("y shape otliers removal: ", y.shape)
+print("y shape after otliers removal: ", y.shape)
+
+#Fix unbalanced data
+#Synthetic Minority Over-sampling Technique 
+print("y balance before SMOTE: ")
+print(pd.Series(list(y)).value_counts())
+over_sampling=SMOTE()
+X,y=over_sampling.fit_resample(X, y)
+print("X shape after balancing: ", X.shape)
+print("y shape after balancing: ", y.shape)
+print("y balance after SMOTE: ")
+print(pd.Series(list(y)).value_counts())
 
 #Check variance and apply dimension reduction
+#Principal Component Analysis
 pca=PCA()
 pca.fit(X)
 print("Explained variance: ", pca.explained_variance_ratio_.cumsum())
-#It looks like we can lower the dimension to 19 without losing 0.001% of variance
+#It looks like we can lower the dimension to 19 without losing 0.0001% of variance
 pca=PCA(n_components=19)
 X=pca.fit_transform(X)
 print("X shape after dimension reduction: ", X.shape)
