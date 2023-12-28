@@ -16,6 +16,8 @@ from tensorflow.keras.models import Sequential
 from keras.layers import Dense 
 from keras.layers import Dropout
 
+from keras.optimizers import Adam
+
 import matplotlib.pyplot as plt
 
 ################ Load the data ###################
@@ -73,10 +75,10 @@ print("y balance before SMOTE: ")
 print(pd.Series(list(y)).value_counts())
 over_sampling=SMOTE()
 X,y=over_sampling.fit_resample(X, y)
-print("X shape after balancing: ", X.shape)
-print("y shape after balancing: ", y.shape)
 print("y balance after SMOTE: ")
 print(pd.Series(list(y)).value_counts())
+print("X shape after balancing: ", X.shape)
+print("y shape after balancing: ", y.shape)
 
 #Check variance and apply dimension reduction
 #Principal Component Analysis
@@ -84,7 +86,8 @@ pca=PCA()
 pca.fit(X)
 print("Explained variance: ", pca.explained_variance_ratio_.cumsum())
 #It looks like we can lower the dimension to 19 without losing 0.0001% of variance
-pca=PCA(n_components=19)
+main_components=19
+pca=PCA(n_components=main_components)
 X=pca.fit_transform(X)
 print("X shape after dimension reduction: ", X.shape)
 
@@ -102,7 +105,7 @@ X_train,X_test,Y_train,Y_test=train_test_split(X,y,test_size=0.33, random_state=
 ################ Prepare the model #########
 
 model=Sequential()
-model.add(Dense(50,input_dim=19, activation="relu"))
+model.add(Dense(50,input_dim=main_components, activation="relu"))
 model.add(Dropout(0.2))
 model.add(Dense(50, activation="relu"))
 model.add(Dropout(0.2))
@@ -118,32 +121,86 @@ tf.keras.utils.plot_model(model,"exp.png",
                           show_shapes=True,
                           show_layer_names=True)
 
-model.compile(loss="binary_crossentropy",
-              optimizer="adam",
-              metrics=["accuracy"])
+#Creating loss function:
+#BinaryCrossentropy computes the cross-entropy loss 
+#between true labels and predicted labels.
+loss=tf.keras.losses.BinaryCrossentropy()
+
+#Experiments:
+#loss=tf.keras.losses.MeanSquaredError() 
+#loss=tf.keras.losses.MeanSquaredLogarithmicError()
+
+#Creating optimizer: 
+#Adam (Adaptive Moment Estimation) optimization is a stochastic gradient descent method.
+#learning_rate for our data is good from 0.0005 to 0.001
+opt = Adam(learning_rate=0.001)
+
+#Define our metrics:
+ac=tf.keras.metrics.BinaryAccuracy()
+bc=tf.keras.metrics.BinaryCrossentropy() #it is our deafult loss function
+pr=tf.keras.metrics.Precision()
+tp=tf.keras.metrics.TruePositives()
+tn=tf.keras.metrics.TrueNegatives()
+fp=tf.keras.metrics.FalsePositives()
+fn=tf.keras.metrics.FalseNegatives()
+
+model.compile(loss=loss,
+              optimizer=opt,
+              metrics=[ac,bc,pr,tp,tn,fp,fn])
 
 history= model.fit(
     X_train,
     Y_train,
-    epochs=20,
+    epochs=50,
     verbose=2,
-    batch_size=16,
-    validation_split=0.2
+    validation_data=(X_test,Y_test)
     )
 
 ################ Plot ################
 
-plt.plot(history.history["accuracy"],"--")
-plt.plot(history.history["val_accuracy"])
-plt.title("Training performance")
+plt.plot(history.history[ac.name],"--")
+plt.plot(history.history["val_"+ac.name])
+plt.title("Training accuracy")
 plt.ylabel("Accuracy")
 plt.xlabel("Cycle(epoch)")
 plt.legend(["training","verification"],loc="lower right")
 plt.show()
 
+plt.plot(history.history[fp.name],"--")
+plt.plot(history.history["val_"+fp.name])
+plt.title("Training FP")
+plt.ylabel("FalsePositives")
+plt.xlabel("Cycle(epoch)")
+plt.legend(["training","verification"],loc="upper right")
+plt.show()
+
+plt.plot(history.history[fn.name],"--")
+plt.plot(history.history["val_"+fn.name])
+plt.title("Training FN")
+plt.ylabel("FalseNegatives")
+plt.xlabel("Cycle(epoch)")
+plt.legend(["training","verification"],loc="upper right")
+plt.show()
+
+plt.plot(history.history[pr.name],"--")
+plt.plot(history.history["val_"+pr.name])
+plt.title("Training precision")
+plt.ylabel("Precision")
+plt.xlabel("Cycle(epoch)")
+plt.legend(["training","verification"],loc="lower right")
+plt.show()
+
+plt.plot(history.history[bc.name],"--")
+plt.plot(history.history["val_"+bc.name])
+plt.title("Training crossentropy")
+plt.ylabel("Crossentropy")
+plt.xlabel("Cycle(epoch)")
+plt.legend(["training","verification"],loc="upper right")
+plt.show()
+
 plt.plot(history.history["loss"],"--")
 plt.plot(history.history["val_loss"])
-plt.title("Model errors")
+plt.title("Model loss errors")
 plt.ylabel("Errors")
 plt.xlabel("Cycle(epoch)")
 plt.legend(["training","verification"],loc="upper right")
