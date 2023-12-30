@@ -94,23 +94,23 @@ print("X shape after dimension reduction: ", X.shape)
 #Scale all data with MinMax to 0-1
 scaler=MinMaxScaler(feature_range=(0,1))
 X=scaler.fit_transform(X)
-print("Prepared data:")
+print("Prepared data")
+print("X:")
 print(X)
+print("y:")
 print(y)
 
 ################ Split the data ################
 
-X_train,X_test,Y_train,Y_test=train_test_split(X,y,test_size=0.33, random_state=0)
+X_train,X_test,Y_train,Y_test=train_test_split(X,y,test_size=0.20, random_state=0)
 
 ################ Prepare the model #########
 
 model=Sequential()
-model.add(Dense(50,input_dim=main_components, activation="relu"))
+model.add(Dense(8,input_dim=main_components, activation="relu"))
+model.add(Dense(16, activation="relu"))
 model.add(Dropout(0.2))
-model.add(Dense(50, activation="relu"))
-model.add(Dropout(0.2))
-model.add(Dense(50, activation="relu"))
-model.add(Dropout(0.2))
+model.add(Dense(8, activation="relu"))
 model.add(Dense(1,activation="sigmoid"))
 
 model.summary()
@@ -142,18 +142,20 @@ pr=tf.keras.metrics.Precision()
 tp=tf.keras.metrics.TruePositives()
 tn=tf.keras.metrics.TrueNegatives()
 fp=tf.keras.metrics.FalsePositives()
-fn=tf.keras.metrics.FalseNegatives()
+fn=tf.keras.metrics.FalseNegatives() #potential deaths
+rc=tf.keras.metrics.Recall()
 
 model.compile(loss=loss,
               optimizer=opt,
-              metrics=[ac,bc,pr,tp,tn,fp,fn])
+              metrics=[ac,bc,pr,tp,tn,fp,fn,rc])
 
 history= model.fit(
     X_train,
     Y_train,
-    epochs=50,
+    epochs=100,
     verbose=2,
     validation_data=(X_test,Y_test)
+    #validation_split=0.25
     )
 
 ################ Plot ################
@@ -204,6 +206,14 @@ plt.title("Model loss errors")
 plt.ylabel("Errors")
 plt.xlabel("Cycle(epoch)")
 plt.legend(["training","verification"],loc="upper right")
+plt.show()
+
+plt.plot(history.history[rc.name],"--")
+plt.plot(history.history["val_"+rc.name])
+plt.title("Training Recall")
+plt.ylabel("Recall")
+plt.xlabel("Cycle(epoch)")
+plt.legend(["training","verification"],loc="lower right")
 plt.show()
 
 scores=model.evaluate(X_test,Y_test)
