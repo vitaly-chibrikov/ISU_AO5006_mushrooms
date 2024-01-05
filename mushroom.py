@@ -5,8 +5,6 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.decomposition import PCA
 
-# To fix errors of versions compatibility of SMOTE
-# use "pip install scikit-learn==1.2.2"
 from imblearn.over_sampling import SMOTE
 
 from sklearn.model_selection import train_test_split
@@ -155,7 +153,6 @@ history= model.fit(
     epochs=100,
     verbose=2,
     validation_data=(X_test,Y_test)
-    #validation_split=0.25
     )
 
 ################ Plot ################
