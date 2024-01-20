@@ -1,21 +1,32 @@
+#Pandas is a software library written for the Python programming language 
+# for data manipulation and analysis.
 import pandas as pd
+
+#Python package for dataset imports from UCI ML Repository
 from ucimlrepo import fetch_ucirepo
+
+#scikit-learn is a free software machine learning library.
+#It features various classification, regression and clustering algorithms.
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.decomposition import PCA
-
-from imblearn.over_sampling import SMOTE
-
 from sklearn.model_selection import train_test_split
 
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
+#Keras is an open-source library for artificial neural networks
 from keras.layers import Dense 
 from keras.layers import Dropout
-
 from keras.optimizers import Adam
 
+#Imbalanced-learn is an open source library 
+#provides tools when dealing with classification with imbalanced classes
+from imblearn.over_sampling import SMOTE
+
+#TensorFlow is a library for machine learning and artificial intelligence
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+
+#Matplotlib is a plotting library for the Python programming language 
 import matplotlib.pyplot as plt
 
 ################ Load the data ###################
@@ -24,6 +35,7 @@ import matplotlib.pyplot as plt
 #https://archive.ics.uci.edu/dataset/73/mushroom
 df=fetch_ucirepo(id=73)
 #print(df)
+#'''
 
 #Get features
 X=df.data.features
@@ -101,9 +113,11 @@ print(y)
 ################ Split the data ################
 
 X_train,X_test,Y_train,Y_test=train_test_split(X,y,test_size=0.20, random_state=0)
+print("Y train values:\n", pd.Series(list(Y_train)).value_counts())
+
 
 ################ Prepare the model #########
-
+#https://keras.io/guides/sequential_model/
 model=Sequential()
 model.add(Dense(8,input_dim=main_components, activation="relu"))
 model.add(Dense(16, activation="relu"))
@@ -150,7 +164,7 @@ model.compile(loss=loss,
 history= model.fit(
     X_train,
     Y_train,
-    epochs=100,
+    epochs=50,
     verbose=2,
     validation_data=(X_test,Y_test)
     )
